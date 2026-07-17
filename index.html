@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="images/tdr.gif">
+    <title>TDR's website</title>
+
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="TDR's website">
+    <meta name="description"
+        content="Official TDR website. Discover our history, diplomacy, and live statistics via our dynamic holomap.">
+    <meta name="keywords" content="TDR, Starblast, Clan, Team, Discord, Holomap, Gaming, Community">
+    <meta name="author" content="TDR">
+    <meta name="theme-color" content="#ff2a2a">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="">
+    <meta property="og:title" content="TDR's website">
+    <meta property="og:description"
+        content="Official TDR website. Discover our history, diplomacy, and live statistics via our dynamic holomap.">
+    <meta property="og:image" content="">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="">
+    <meta property="twitter:title" content="TDR's website">
+    <meta property="twitter:description"
+        content="Official TDR website. Discover our history, diplomacy, and live statistics via our dynamic holomap.">
+    <meta property="twitter:image" content="">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Anime.js & Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- Mini Navbar (Center Right) -->
+    <nav class="side-nav">
+        <a href="#accueil" class="nav-item active" data-tooltip="Home">
+            <i class="fa-solid fa-house"></i>
+        </a>
+        <a href="#histoire" class="nav-item" data-tooltip="History">
+            <i class="fa-solid fa-microchip"></i>
+        </a>
+        <a href="#diplomatie" class="nav-item" data-tooltip="Diplomacy">
+            <i class="fa-solid fa-handshake"></i>
+        </a>
+        <a href="#statistiques" class="nav-item" data-tooltip="Statistics">
+            <i class="fa-solid fa-chart-simple"></i>
+        </a>
+    </nav>
+
+    <main class="snap-container">
+        <!-- Section 1 : Accueil -->
+        <section id="accueil">
+            <div class="circuit-bg">
+                <!-- Background circuits placeholder -->
+            </div>
+            <div class="hero-content">
+                <div class="logo-container">
+                    <!-- User can replace the image below with their actual logo -->
+                    <!-- <img src="path/to/your/logo.png" alt="Clan Logo" class="clan-logo"> -->
+                    <div class="text-logo">TDR</div>
+                </div>
+                <p class="hero-subtitle">Domination in the Starblast universe</p>
+            </div>
+            
+            <div class="scroll-indicator">
+                <span>SCROLL</span>
+                <i class="fa-solid fa-angles-down"></i>
+            </div>
+        </section>
+
+        <!-- Section 2 : Histoire (Holocarte) -->
+        <section id="histoire">
+            <div class="holomap-container">
+                <canvas id="webgl-energy"></canvas>
+                <div class="holo-nodes" id="holo-nodes-container"></div>
+
+                <svg class="holo-laser-grid" id="holo-laser-grid" viewBox="0 0 100 100"
+                    preserveAspectRatio="none"></svg>
+
+                <div class="holo-display-panel">
+                    <button id="close-holo-btn" class="holo-close-btn"><i class="fa-solid fa-xmark"></i></button>
+                    <div class="panel-content" id="holo-panel-content">
+                        <div id="default-info" class="holo-info active">
+                            <h3><i class="fa-solid fa-satellite-dish"></i> Awaiting transmission...</h3>
+                            <p>Select a memory node to decrypt the archive.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3 : Diplomatie -->
+        <section id="diplomatie">
+            <div class="diplomacy-3d-grid">
+                <div class="terminal-card ally-term">
+                    <div class="terminal-content">
+                        <i class="fa-solid fa-shield-halved icon"></i>
+                        <h3>Allies</h3>
+                        <ul class="clan-list">
+                            <li>Orion Clan</li>
+                            <li>Nova Syndicate</li>
+                            <li>Rebel Alliance</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="terminal-card enemy-term">
+                    <div class="terminal-content">
+                        <i class="fa-solid fa-skull icon"></i>
+                        <h3>Enemies</h3>
+                        <ul class="clan-list">
+                            <li>Shadow Pirates</li>
+                            <li>Galactic Empire</li>
+                            <li>The Ravagers</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="terminal-card neutral-term">
+                    <div class="terminal-content">
+                        <i class="fa-solid fa-scale-balanced icon"></i>
+                        <h3>Neutrals</h3>
+                        <ul class="clan-list">
+                            <li>Trade Federation</li>
+                            <li>Void Guardians</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4 : Statistiques (HUD) -->
+        <section id="statistiques">
+            <div class="hud-container">
+                <div class="hud-side">
+                    <div class="hud-ring-box">
+                        <svg class="hud-svg" viewBox="0 0 100 100">
+                            <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+                            <circle class="ring-progress" id="ring-members" cx="50" cy="50" r="45"></circle>
+                        </svg>
+                        <div class="hud-data">
+                            <i class="fa-solid fa-users icon"></i>
+                            <h3 id="discord-member-count" data-value="128">--</h3>
+                            <p>Members</p>
+                        </div>
+                    </div>
+                    <div class="hud-ring-box">
+                        <svg class="hud-svg" viewBox="0 0 100 100">
+                            <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+                            <circle class="ring-progress" id="ring-online" cx="50" cy="50" r="45"
+                                style="stroke: #00ff00;"></circle>
+                        </svg>
+                        <div class="hud-data">
+                            <i class="fa-solid fa-signal icon" style="color: #00ff00;"></i>
+                            <h3 id="discord-online-count" data-value="42">--</h3>
+                            <p>Online</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hud-center">
+                    <div class="discord-widget-container glass-panel">
+                        <!-- L'utilisateur a décommenté l'iframe, on le conserve -->
+                        <iframe src="https://discord.com/widget?id=1400222087242580119&theme=dark" width="350"
+                            height="400" allowtransparency="true" frameborder="0"
+                            sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+                            style="display: none;" id="real-discord-iframe"></iframe>
+
+                        <!-- HUD style Discord status, fallback when iframe isn't ready or just visually better before load -->
+                        <div class="discord-placeholder" id="discord-hud-display">
+                            <i class="fa-brands fa-discord discord-logo pulse"></i>
+                            <h3>Discord Network</h3>
+                            <a href="#" class="btn-discord"
+                                onclick="document.getElementById('real-discord-iframe').style.display='block'; document.getElementById('discord-hud-display').style.display='none'; return false;">Activate
+                                Terminal</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hud-side">
+                    <div class="hud-ring-box">
+                        <svg class="hud-svg" viewBox="0 0 100 100">
+                            <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+                            <circle class="ring-progress" id="ring-victories" cx="50" cy="50" r="45"
+                                style="stroke: #ffaa00;"></circle>
+                        </svg>
+                        <div class="hud-data">
+                            <i class="fa-solid fa-trophy icon" style="color: #ffaa00;"></i>
+                            <h3 id="clan-victories">15</h3>
+                            <p>Victories</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script src="script.js"></script>
+</body>
+
+</html>
