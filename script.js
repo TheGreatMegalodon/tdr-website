@@ -232,6 +232,20 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeWebGL);
     resizeWebGL(); // initial sizing
 
+    let mouseX3D = -10000;
+    let mouseY3D = -10000;
+
+    canvas.parentElement.addEventListener('mousemove', (e) => {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        mouseX3D = (e.clientX - rect.left) - w / 2;
+        mouseY3D = -((e.clientY - rect.top) - h / 2); // WebGL Y is up
+    });
+
+    canvas.parentElement.addEventListener('mouseleave', () => {
+        mouseX3D = -10000;
+        mouseY3D = -10000;
+    });
+
     // Convert percentage nodes to exact 3D coordinates at Z=0
     const curvePoints3D = curvePoints.map(pt => {
         const pxX = (pt.x / 100) * w - w / 2;
@@ -467,6 +481,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
+                    // Mouse perturbation
+                    let dxMouse = currentX - mouseX3D;
+                    let dyMouse = currentY - mouseY3D;
+                    let distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
+                    const mouseBubble = 150;
+                    if (distMouse < mouseBubble) {
+                        if (distMouse < 0.001) { dxMouse = 1; distMouse = 1; }
+                        const pushAmount = (mouseBubble - distMouse) * 0.4;
+                        currentX += (dxMouse / distMouse) * pushAmount;
+                        currentY += (dyMouse / distMouse) * pushAmount;
+                        currentZ += (Math.random() - 0.5) * pushAmount;
+                    }
+
                     positions[j * 3] = currentX;
                     positions[j * 3 + 1] = currentY;
                     positions[j * 3 + 2] = currentZ;
@@ -503,6 +530,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             currentZ += (dz / dist) * pushAmount;
                         }
                     });
+
+                    // Mouse perturbation
+                    let dxMouse = currentX - mouseX3D;
+                    let dyMouse = currentY - mouseY3D;
+                    let distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
+                    const mouseBubble = 150;
+                    if (distMouse < mouseBubble) {
+                        if (distMouse < 0.001) { dxMouse = 1; distMouse = 1; }
+                        const pushAmount = (mouseBubble - distMouse) * 0.4;
+                        currentX += (dxMouse / distMouse) * pushAmount;
+                        currentY += (dyMouse / distMouse) * pushAmount;
+                        currentZ += (Math.random() - 0.5) * pushAmount;
+                    }
 
                     positions[i * 3] = currentX;
                     positions[i * 3 + 1] = currentY;
@@ -547,25 +587,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.holo-node') && !e.target.closest('.holo-display-panel') && !e.target.closest('.holo-info')) {
-            closePanel();
-        }
-    });
-
-    const closeBtn = document.getElementById('close-holo-btn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closePanel);
-    }
-
-    const holoNodes = document.querySelectorAll('.holo-node');
-    const holoInfos = document.querySelectorAll('.holo-info');
-
-    holoNodes.forEach((node) => {
-        node.addEventListener('click', () => {
+        const node = e.target.closest('.holo-node');
+        if (node) {
             const targetId = node.getAttribute('data-target');
             const index = parseInt(targetId.split('-')[1]);
 
-            holoInfos.forEach(p => p.classList.remove('active'));
+            // Don't re-trigger if already active
+            if (document.getElementById(targetId).classList.contains('active')) return;
+
+            document.querySelectorAll('.holo-info').forEach(p => p.classList.remove('active'));
 
             if (fireWebGLLaser) fireWebGLLaser(index);
 
@@ -584,30 +614,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById(targetId).classList.add('active');
                 }
             }, '-=400');
-        });
+            return; // Exit after handling node click
+        }
+
+        // If clicking outside nodes and panels, close it
+        if (!e.target.closest('.holo-display-panel') && !e.target.closest('.holo-info') && !e.target.closest('#close-holo-btn')) {
+            closePanel();
+        }
     });
 
-    // 5. TERMINAL 3D MOUSEMOVE (Section 3)
-    const terminals = document.querySelectorAll('.terminal-card');
-    terminals.forEach(card => {
-        card.addEventListener('mousemove', e => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotateX = ((y - centerY) / centerY) * -15; // max 15 deg
-            const rotateY = ((x - centerX) / centerX) * 15;
+    const closeBtn = document.getElementById('close-holo-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closePanel);
+    }
 
-            card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
-        });
-
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = `perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-        });
-    });
-
-    // 5. DISCORD API FETCH (Stats Placeholder)
+    // (Tilt effect removed by user request)    // 5. DISCORD API FETCH (Stats Placeholder)
     const discordServerId = '1400222087242580119';
     const onlineCountEl = document.getElementById('discord-online-count');
 
@@ -623,4 +644,197 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         onlineCountEl.setAttribute('data-value', 42); // Placeholder mock value for animation
     }
+
+    // 6. DIPLOMACY CANVAS EFFECT
+    function initDiplomacyCanvas() {
+        const canvas = document.getElementById('webgl-diplomacy');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let w, h;
+
+        function resize() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            w = canvas.width = rect.width;
+            h = canvas.height = rect.height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let mouseX = -1000;
+        let mouseY = -1000;
+
+        canvas.parentElement.addEventListener('mousemove', (e) => {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
+        canvas.parentElement.addEventListener('mouseleave', () => {
+            mouseX = -1000;
+            mouseY = -1000;
+        });
+
+        const activeBoosts = { ally: false, enemy: false, neutral: false };
+        const cards = document.querySelectorAll('.terminal-card');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                if (card.classList.contains('ally-term')) activeBoosts.ally = true;
+                if (card.classList.contains('enemy-term')) activeBoosts.enemy = true;
+                if (card.classList.contains('neutral-term')) activeBoosts.neutral = true;
+            });
+            card.addEventListener('mouseleave', () => {
+                if (card.classList.contains('ally-term')) activeBoosts.ally = false;
+                if (card.classList.contains('enemy-term')) activeBoosts.enemy = false;
+                if (card.classList.contains('neutral-term')) activeBoosts.neutral = false;
+            });
+        });
+
+        const particles = [];
+        const config = {
+            particleCount: 200,
+            allyColor: '#00ff00', 
+            enemyColor: '#ff2a2a', 
+            neutralColor: '#aaaaaa' 
+        };
+
+        class Particle {
+            constructor(side, isExtra = false) {
+                this.side = side;
+                this.isExtra = isExtra;
+                this.dead = false;
+                this.reset();
+            }
+
+            reset() {
+                if (this.side === 'ally') {
+                    this.x = 0;
+                    this.y = Math.random() * h;
+                    this.vx = Math.random() * 4 + 2;
+                    this.vy = (Math.random() - 0.5) * 1;
+                    this.color = config.allyColor;
+                    this.life = 1;
+                } else if (this.side === 'enemy') {
+                    this.x = w;
+                    this.y = Math.random() * h;
+                    this.vx = -(Math.random() * 4 + 2);
+                    this.vy = (Math.random() - 0.5) * 1;
+                    this.color = config.enemyColor;
+                    this.life = 1;
+                } else {
+                    this.x = w / 2 + (Math.random() - 0.5) * 150;
+                    this.y = Math.random() * h;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 2;
+                    this.color = config.neutralColor;
+                    this.life = Math.random() * 0.5 + 0.5;
+                }
+                this.size = Math.random() * 1.5 + 0.5;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Mouse Repulsion (Position shift, no velocity accumulation)
+                const dx = this.x - mouseX;
+                const dy = this.y - mouseY;
+                const distToMouse = Math.sqrt(dx * dx + dy * dy);
+                if (distToMouse < 200 && distToMouse > 0.1) {
+                    const pushFactor = (200 - distToMouse) / 200;
+                    this.x += (dx / distToMouse) * pushFactor * 7;
+                    this.y += (dy / distToMouse) * pushFactor * 7;
+                }
+
+                const distToCenter = Math.abs(this.x - w / 2);
+                
+                // Clash Physics
+                if (this.side === 'ally' || this.side === 'enemy') {
+                    if (distToCenter < 200) {
+                        // Turbulence zone
+                        this.vx *= 0.85; // Sharp deceleration
+                        this.vy += (Math.random() - 0.5) * 3; // Vertical scatter sparks
+                        this.life -= 0.015;
+                    }
+                } else {
+                    // Neutral floating
+                    this.life -= 0.005;
+                }
+
+                // Boost acceleration
+                if (activeBoosts[this.side]) {
+                    const maxSpeed = this.side === 'neutral' ? 4 : 12;
+                    if (Math.abs(this.vx) < maxSpeed) {
+                        this.vx *= 1.05; // Smooth acceleration
+                    }
+                    if (this.side === 'neutral' && Math.abs(this.vy) < maxSpeed) {
+                        this.vy *= 1.05; // Neutrals just get more energetic in all directions
+                    }
+                }
+
+                if (this.life <= 0 || this.x < 0 || this.x > w || this.y < 0 || this.y > h) {
+                    if (this.isExtra && !activeBoosts[this.side]) {
+                        this.dead = true;
+                    } else {
+                        this.reset();
+                    }
+                }
+            }
+
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        for (let i = 0; i < config.particleCount; i++) {
+            if (i < 80) particles.push(new Particle('ally'));
+            else if (i < 160) particles.push(new Particle('enemy'));
+            else particles.push(new Particle('neutral'));
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            // Soft trail effect
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, w, h);
+            
+            // Random lightning arcs in the clash zone
+            if (Math.random() > 0.85) {
+                const clashY = Math.random() * h;
+                ctx.globalAlpha = 0.4;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(w / 2 - 40 + Math.random() * 80, clashY);
+                ctx.lineTo(w / 2 - 40 + Math.random() * 80, clashY + (Math.random() - 0.5) * 60);
+                ctx.stroke();
+            }
+
+            // Spawn extra particles for boosted sides
+            if (activeBoosts.ally && Math.random() < 0.6) particles.push(new Particle('ally', true));
+            if (activeBoosts.enemy && Math.random() < 0.6) particles.push(new Particle('enemy', true));
+            if (activeBoosts.neutral && Math.random() < 0.6) particles.push(new Particle('neutral', true));
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                if (p.dead) {
+                    particles.splice(i, 1);
+                } else {
+                    p.draw();
+                }
+            }
+        }
+        animate();
+    }
+    
+    initDiplomacyCanvas();
+
 });
