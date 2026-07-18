@@ -216,11 +216,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let w = 100;
     let h = 100;
+    let containerLeft = 0;
+    let containerTop = 0;
 
     function resizeWebGL() {
         const rect = canvas.parentElement.getBoundingClientRect();
         w = rect.width;
         h = rect.height;
+        containerLeft = rect.left + window.scrollX;
+        containerTop = rect.top + window.scrollY;
+        
         renderer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
@@ -230,16 +235,23 @@ document.addEventListener('DOMContentLoaded', () => {
         camera.position.z = dist;
     }
     window.addEventListener('resize', resizeWebGL);
+    // Also update on scroll just in case layout changes asynchronously, but debounced
+    window.addEventListener('scroll', () => {
+        containerLeft = canvas.parentElement.getBoundingClientRect().left + window.scrollX;
+        containerTop = canvas.parentElement.getBoundingClientRect().top + window.scrollY;
+    }, { passive: true });
     resizeWebGL(); // initial sizing
 
     let mouseX3D = -10000;
     let mouseY3D = -10000;
 
     canvas.parentElement.addEventListener('mousemove', (e) => {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        mouseX3D = (e.clientX - rect.left) - w / 2;
-        mouseY3D = -((e.clientY - rect.top) - h / 2); // WebGL Y is up
-    });
+        // No layout thrashing: compute from cached absolute coordinates
+        const localX = e.pageX - containerLeft;
+        const localY = e.pageY - containerTop;
+        mouseX3D = localX - w / 2;
+        mouseY3D = -(localY - h / 2); // WebGL Y is up
+    }, { passive: true });
 
     canvas.parentElement.addEventListener('mouseleave', () => {
         mouseX3D = -10000;
@@ -445,10 +457,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         const clock = new THREE.Clock();
+        let isAnimating = false;
+
         function animateWebGL() {
+            if (!isAnimating) return;
             requestAnimationFrame(animateWebGL);
             const delta = clock.getDelta();
             const time = clock.getElapsedTime();
+
+            const nodeBubbleRadiusSq = 40 * 40;
+            const mouseBubbleRadiusSq = 150 * 150;
 
             // 1. Animate Streaks along the curve with chaotic noise
             streaks.forEach(streak => {
@@ -465,30 +483,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     let currentY = pt.y + Math.cos(p * 40 * streak.freq - time * 4 + streak.offset) * 15;
                     let currentZ = pt.z + Math.sin(p * 30 * streak.freq + time * 3 + streak.offset) * 15;
 
-                    curvePoints3D.forEach(nodePt => {
+                    // Node repulsion (Optimized Math)
+                    for (let n = 0; n < curvePoints3D.length; n++) {
+                        const nodePt = curvePoints3D[n];
                         let dx = currentX - nodePt.x;
                         let dy = currentY - nodePt.y;
                         let dz = currentZ - nodePt.z;
-                        let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        let distSq = dx * dx + dy * dy + dz * dz;
 
-                        const bubbleRadius = 40;
-                        if (dist < bubbleRadius) {
-                            if (dist < 0.001) { dx = Math.sin(streak.offset); dy = Math.cos(streak.offset); dist = 1; }
-                            const pushAmount = bubbleRadius - dist;
+                        if (distSq < nodeBubbleRadiusSq) {
+                            if (distSq < 0.0001) { dx = Math.sin(streak.offset); dy = Math.cos(streak.offset); distSq = 1; }
+                            let dist = Math.sqrt(distSq);
+                            const pushAmount = 40 - dist;
                             currentX += (dx / dist) * pushAmount;
                             currentY += (dy / dist) * pushAmount;
                             currentZ += (dz / dist) * pushAmount;
                         }
-                    });
+                    }
 
-                    // Mouse perturbation
+                    // Mouse perturbation (Optimized Math)
                     let dxMouse = currentX - mouseX3D;
                     let dyMouse = currentY - mouseY3D;
-                    let distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
-                    const mouseBubble = 150;
-                    if (distMouse < mouseBubble) {
-                        if (distMouse < 0.001) { dxMouse = 1; distMouse = 1; }
-                        const pushAmount = (mouseBubble - distMouse) * 0.4;
+                    let distMouseSq = dxMouse * dxMouse + dyMouse * dyMouse; // Ignore Z for mouse distance
+
+                    if (distMouseSq < mouseBubbleRadiusSq) {
+                        if (distMouseSq < 0.0001) { dxMouse = 1; distMouseSq = 1; }
+                        let distMouse = Math.sqrt(distMouseSq);
+                        const pushAmount = (150 - distMouse) * 0.4;
                         currentX += (dxMouse / distMouse) * pushAmount;
                         currentY += (dyMouse / distMouse) * pushAmount;
                         currentZ += (Math.random() - 0.5) * pushAmount;
@@ -515,30 +536,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     let currentY = pt.y + Math.cos(data.progress * 40 * data.freq - time * 4 + data.offset) * 15;
                     let currentZ = pt.z + Math.sin(data.progress * 30 * data.freq + time * 3 + data.offset) * 15;
 
-                    curvePoints3D.forEach(nodePt => {
+                    // Node repulsion (Optimized Math)
+                    for (let n = 0; n < curvePoints3D.length; n++) {
+                        const nodePt = curvePoints3D[n];
                         let dx = currentX - nodePt.x;
                         let dy = currentY - nodePt.y;
                         let dz = currentZ - nodePt.z;
-                        let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        let distSq = dx * dx + dy * dy + dz * dz;
 
-                        const bubbleRadius = 40;
-                        if (dist < bubbleRadius) {
-                            if (dist < 0.001) { dx = 1; dist = 1; }
-                            const pushAmount = bubbleRadius - dist;
+                        if (distSq < nodeBubbleRadiusSq) {
+                            if (distSq < 0.0001) { dx = 1; distSq = 1; }
+                            let dist = Math.sqrt(distSq);
+                            const pushAmount = 40 - dist;
                             currentX += (dx / dist) * pushAmount;
                             currentY += (dy / dist) * pushAmount;
                             currentZ += (dz / dist) * pushAmount;
                         }
-                    });
+                    }
 
-                    // Mouse perturbation
+                    // Mouse perturbation (Optimized Math)
                     let dxMouse = currentX - mouseX3D;
                     let dyMouse = currentY - mouseY3D;
-                    let distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
-                    const mouseBubble = 150;
-                    if (distMouse < mouseBubble) {
-                        if (distMouse < 0.001) { dxMouse = 1; distMouse = 1; }
-                        const pushAmount = (mouseBubble - distMouse) * 0.4;
+                    let distMouseSq = dxMouse * dxMouse + dyMouse * dyMouse;
+                    
+                    if (distMouseSq < mouseBubbleRadiusSq) {
+                        if (distMouseSq < 0.0001) { dxMouse = 1; distMouseSq = 1; }
+                        let distMouse = Math.sqrt(distMouseSq);
+                        const pushAmount = (150 - distMouse) * 0.4;
                         currentX += (dxMouse / distMouse) * pushAmount;
                         currentY += (dyMouse / distMouse) * pushAmount;
                         currentZ += (Math.random() - 0.5) * pushAmount;
@@ -572,7 +596,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderer.render(scene, camera);
         }
-        animateWebGL();
+
+        // Intersection Observer to pause WebGL when off-screen
+        const webglObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                if (!isAnimating) {
+                    isAnimating = true;
+                    clock.start(); // Prevent large delta jumps when resuming
+                    animateWebGL();
+                }
+            } else {
+                isAnimating = false;
+            }
+        }, { threshold: 0.1 });
+        webglObserver.observe(canvas.parentElement);
+        
     }
 
     // Background click or Close button click to reset
@@ -651,23 +689,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         let w, h;
+        let containerLeft = 0;
+        let containerTop = 0;
 
         function resize() {
             const rect = canvas.parentElement.getBoundingClientRect();
             w = canvas.width = rect.width;
             h = canvas.height = rect.height;
+            containerLeft = rect.left + window.scrollX;
+            containerTop = rect.top + window.scrollY;
         }
         window.addEventListener('resize', resize);
+        window.addEventListener('scroll', () => {
+            containerLeft = canvas.parentElement.getBoundingClientRect().left + window.scrollX;
+            containerTop = canvas.parentElement.getBoundingClientRect().top + window.scrollY;
+        }, { passive: true });
         resize();
 
         let mouseX = -1000;
         let mouseY = -1000;
 
         canvas.parentElement.addEventListener('mousemove', (e) => {
-            const rect = canvas.parentElement.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-        });
+            mouseX = e.pageX - containerLeft;
+            mouseY = e.pageY - containerTop;
+        }, { passive: true });
 
         canvas.parentElement.addEventListener('mouseleave', () => {
             mouseX = -1000;
@@ -689,19 +734,26 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        const MAX_PARTICLES = 500;
         const particles = [];
         const config = {
-            particleCount: 200,
+            baseCount: 200,
             allyColor: '#00ff00', 
             enemyColor: '#ff2a2a', 
             neutralColor: '#aaaaaa' 
         };
 
         class Particle {
-            constructor(side, isExtra = false) {
+            constructor() {
+                this.active = false;
+                this.side = 'neutral';
+                this.isExtra = false;
+            }
+
+            spawn(side, isExtra = false) {
                 this.side = side;
                 this.isExtra = isExtra;
-                this.dead = false;
+                this.active = true;
                 this.reset();
             }
 
@@ -732,14 +784,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             update() {
+                if (!this.active) return;
                 this.x += this.vx;
                 this.y += this.vy;
 
-                // Mouse Repulsion (Position shift, no velocity accumulation)
+                // Mouse Repulsion (Optimized Math)
                 const dx = this.x - mouseX;
                 const dy = this.y - mouseY;
-                const distToMouse = Math.sqrt(dx * dx + dy * dy);
-                if (distToMouse < 200 && distToMouse > 0.1) {
+                const distToMouseSq = dx * dx + dy * dy;
+                if (distToMouseSq < 40000 && distToMouseSq > 0.01) { // 200 squared
+                    const distToMouse = Math.sqrt(distToMouseSq);
                     const pushFactor = (200 - distToMouse) / 200;
                     this.x += (dx / distToMouse) * pushFactor * 7;
                     this.y += (dy / distToMouse) * pushFactor * 7;
@@ -773,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (this.life <= 0 || this.x < 0 || this.x > w || this.y < 0 || this.y > h) {
                     if (this.isExtra && !activeBoosts[this.side]) {
-                        this.dead = true;
+                        this.active = false; // Recycle
                     } else {
                         this.reset();
                     }
@@ -781,6 +835,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             draw() {
+                if (!this.active) return;
                 ctx.globalAlpha = this.life;
                 ctx.fillStyle = this.color;
                 ctx.shadowBlur = 8;
@@ -792,13 +847,31 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        for (let i = 0; i < config.particleCount; i++) {
-            if (i < 80) particles.push(new Particle('ally'));
-            else if (i < 160) particles.push(new Particle('enemy'));
-            else particles.push(new Particle('neutral'));
+        // Pre-allocate pool
+        for (let i = 0; i < MAX_PARTICLES; i++) {
+            particles.push(new Particle());
         }
 
+        // Activate base particles
+        for (let i = 0; i < config.baseCount; i++) {
+            if (i < 80) particles[i].spawn('ally');
+            else if (i < 160) particles[i].spawn('enemy');
+            else particles[i].spawn('neutral');
+        }
+
+        function spawnExtra(side) {
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+                if (!particles[i].active) {
+                    particles[i].spawn(side, true);
+                    break;
+                }
+            }
+        }
+
+        let isAnimatingCanvas = false;
+
         function animate() {
+            if (!isAnimatingCanvas) return;
             requestAnimationFrame(animate);
             // Soft trail effect
             ctx.globalAlpha = 0.15;
@@ -817,22 +890,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.stroke();
             }
 
-            // Spawn extra particles for boosted sides
-            if (activeBoosts.ally && Math.random() < 0.6) particles.push(new Particle('ally', true));
-            if (activeBoosts.enemy && Math.random() < 0.6) particles.push(new Particle('enemy', true));
-            if (activeBoosts.neutral && Math.random() < 0.6) particles.push(new Particle('neutral', true));
+            // Spawn extra particles for boosted sides (using object pool)
+            if (activeBoosts.ally && Math.random() < 0.6) spawnExtra('ally');
+            if (activeBoosts.enemy && Math.random() < 0.6) spawnExtra('enemy');
+            if (activeBoosts.neutral && Math.random() < 0.6) spawnExtra('neutral');
 
-            for (let i = particles.length - 1; i >= 0; i--) {
+            for (let i = 0; i < MAX_PARTICLES; i++) {
                 const p = particles[i];
-                p.update();
-                if (p.dead) {
-                    particles.splice(i, 1);
-                } else {
+                if (p.active) {
+                    p.update();
                     p.draw();
                 }
             }
         }
-        animate();
+
+        // Intersection Observer to pause Canvas 2D when off-screen
+        const canvasObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                if (!isAnimatingCanvas) {
+                    isAnimatingCanvas = true;
+                    animate();
+                }
+            } else {
+                isAnimatingCanvas = false;
+            }
+        }, { threshold: 0.1 });
+        canvasObserver.observe(canvas.parentElement);
     }
     
     initDiplomacyCanvas();
