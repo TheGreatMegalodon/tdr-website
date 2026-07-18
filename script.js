@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. ENTRANCE ANIMATIONS FUNCTION
     function triggerEntranceAnimation(sectionId) {
-        if (sectionId === 'diplomatie') {
+        if (sectionId === 'diplomacy') {
             anime({
                 targets: '.terminal-card',
                 translateY: [100, 0],
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 easing: 'easeOutElastic(1, .8)',
                 duration: 1200
             });
-        } else if (sectionId === 'statistiques') {
+        } else if (sectionId === 'statistics') {
             // Animate stats counter
             anime({
                 targets: '#discord-online-count',
