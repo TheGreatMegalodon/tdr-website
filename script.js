@@ -235,23 +235,16 @@ document.addEventListener('DOMContentLoaded', () => {
         camera.position.z = dist;
     }
     window.addEventListener('resize', resizeWebGL);
-    // Also update on scroll just in case layout changes asynchronously, but debounced
-    window.addEventListener('scroll', () => {
-        containerLeft = canvas.parentElement.getBoundingClientRect().left + window.scrollX;
-        containerTop = canvas.parentElement.getBoundingClientRect().top + window.scrollY;
-    }, { passive: true });
     resizeWebGL(); // initial sizing
 
     let mouseX3D = -10000;
     let mouseY3D = -10000;
 
     canvas.parentElement.addEventListener('mousemove', (e) => {
-        // No layout thrashing: compute from cached absolute coordinates
-        const localX = e.pageX - containerLeft;
-        const localY = e.pageY - containerTop;
-        mouseX3D = localX - w / 2;
-        mouseY3D = -(localY - h / 2); // WebGL Y is up
-    }, { passive: true });
+        const rect = canvas.parentElement.getBoundingClientRect();
+        mouseX3D = (e.clientX - rect.left) - w / 2;
+        mouseY3D = -((e.clientY - rect.top) - h / 2); // WebGL Y is up
+    });
 
     canvas.parentElement.addEventListener('mouseleave', () => {
         mouseX3D = -10000;
@@ -696,23 +689,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const rect = canvas.parentElement.getBoundingClientRect();
             w = canvas.width = rect.width;
             h = canvas.height = rect.height;
-            containerLeft = rect.left + window.scrollX;
-            containerTop = rect.top + window.scrollY;
         }
         window.addEventListener('resize', resize);
-        window.addEventListener('scroll', () => {
-            containerLeft = canvas.parentElement.getBoundingClientRect().left + window.scrollX;
-            containerTop = canvas.parentElement.getBoundingClientRect().top + window.scrollY;
-        }, { passive: true });
         resize();
 
         let mouseX = -1000;
         let mouseY = -1000;
 
         canvas.parentElement.addEventListener('mousemove', (e) => {
-            mouseX = e.pageX - containerLeft;
-            mouseY = e.pageY - containerTop;
-        }, { passive: true });
+            const rect = canvas.parentElement.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
 
         canvas.parentElement.addEventListener('mouseleave', () => {
             mouseX = -1000;
