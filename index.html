@@ -15,6 +15,30 @@
     <meta name="author" content="TDR">
     <meta name="theme-color" content="#ff2a2a">
 
+    <!-- GitHub Pages SPA Router Trick -->
+    <script>
+        (function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var redirect = urlParams.get('redirect');
+            if (redirect) {
+                // Restore the requested path in the URL bar
+                window.history.replaceState(null, null, redirect);
+                
+                // After DOM is fully loaded, scroll to the targeted section
+                window.addEventListener('DOMContentLoaded', function() {
+                    // Extract section ID from path (e.g., /tdr-website/accueil -> accueil)
+                    var sectionId = redirect.split('/').pop();
+                    if (sectionId) {
+                        var target = document.getElementById(sectionId);
+                        if (target) {
+                            setTimeout(function() { target.scrollIntoView(); }, 100);
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="">
@@ -42,16 +66,16 @@
 
     <!-- Mini Navbar (Center Right) -->
     <nav class="side-nav">
-        <a href="#accueil" class="nav-item active" data-tooltip="Home">
+        <a href="/accueil" data-section="accueil" class="nav-item active" data-tooltip="Home">
             <i class="fa-solid fa-house"></i>
         </a>
-        <a href="#histoire" class="nav-item" data-tooltip="History">
+        <a href="/histoire" data-section="histoire" class="nav-item" data-tooltip="History">
             <i class="fa-solid fa-microchip"></i>
         </a>
-        <a href="#diplomatie" class="nav-item" data-tooltip="Diplomacy">
+        <a href="/diplomatie" data-section="diplomatie" class="nav-item" data-tooltip="Diplomacy">
             <i class="fa-solid fa-handshake"></i>
         </a>
-        <a href="#statistiques" class="nav-item" data-tooltip="Statistics">
+        <a href="/statistiques" data-section="statistiques" class="nav-item" data-tooltip="Statistics">
             <i class="fa-solid fa-chart-simple"></i>
         </a>
     </nav>

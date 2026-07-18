@@ -19,14 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Update Nav
                 navItems.forEach(item => item.classList.remove('active'));
-                const activeNav = document.querySelector(`.nav-item[href="#${id}"]`);
+                const activeNav = document.querySelector(`.nav-item[data-section="${id}"]`);
                 if (activeNav) activeNav.classList.add('active');
 
-                // Update URL hash without jumping
-                if (history.pushState) {
-                    history.replaceState(null, null, '#' + id);
-                } else {
-                    location.hash = '#' + id;
+                // Update URL without jumping (SPA routing for GitHub Pages)
+                if (history.replaceState) {
+                    history.replaceState(null, null, id);
                 }
 
                 // Trigger Section Specific Animations Once
@@ -38,7 +36,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, observerOptions);
 
-    sections.forEach(section => observer.observe(section));
+    sections.forEach(section => {
+        observer.observe(section);
+    });
+
+    // Handle Nav Clicks manually since we removed standard # anchors
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = item.getAttribute('data-section');
+            const targetSection = document.getElementById(id);
+            if (targetSection) {
+                targetSection.scrollIntoView({ behavior: 'smooth' });
+                if (history.pushState) {
+                    history.pushState(null, null, id);
+                }
+            }
+        });
+    });
 
     // 2. ENTRANCE ANIMATIONS FUNCTION
     function triggerEntranceAnimation(sectionId) {

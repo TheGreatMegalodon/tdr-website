@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+    <script>
+        // GitHub Pages SPA Hack
+        // This script runs when a user refreshes a page on a /path URL.
+        // It captures the path they wanted and redirects them to the repo root 
+        // with the path passed as a query string parameter.
+        
+        var repoName = '/tdr-website'; // Set this to the repository name
+        var path = window.location.pathname; // e.g. /tdr-website/accueil
+        
+        // Ensure we redirect to the correct base path, keeping the query parameter
+        window.location.replace(repoName + '/?redirect=' + encodeURIComponent(path));
+    </script>
+</head>
+<body>
+    <p>Redirecting...</p>
+</body>
+</html>
