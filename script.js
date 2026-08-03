@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         h = rect.height;
         containerLeft = rect.left + window.scrollX;
         containerTop = rect.top + window.scrollY;
-        
+
         renderer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
@@ -566,7 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     let dxMouse = currentX - mouseX3D;
                     let dyMouse = currentY - mouseY3D;
                     let distMouseSq = dxMouse * dxMouse + dyMouse * dyMouse;
-                    
+
                     if (distMouseSq < mouseBubbleRadiusSq) {
                         if (distMouseSq < 0.0001) { dxMouse = 1; distMouseSq = 1; }
                         let distMouse = Math.sqrt(distMouseSq);
@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, { threshold: 0.1 });
         webglObserver.observe(canvas.parentElement);
-        
+
     }
 
     // Background click or Close button click to reset
@@ -674,21 +674,57 @@ document.addEventListener('DOMContentLoaded', () => {
         closeBtn.addEventListener('click', closePanel);
     }
 
-    // (Tilt effect removed by user request)    // 5. DISCORD API FETCH (Stats Placeholder)
+    // 5. DISCORD API FETCH (Widget API & Public Invite API Fallback)
     const discordServerId = '1400222087242580119';
+    // Enter your Discord Invite Code or Link here (e.g. 'https://discord.gg/yourcode' or 'yourcode')
+    const discordInviteCode = 'https://discord.gg/jQR6nFD4Ka';
     const onlineCountEl = document.getElementById('discord-online-count');
+    const memberCountEl = document.getElementById('discord-member-count');
 
-    if (discordServerId !== 'YOUR_SERVER_ID') {
-        fetch(`https://discordapp.com/api/guilds/${discordServerId}/widget.json`)
-            .then(response => response.json())
+    function applyDiscordData(online, members) {
+        if (online !== undefined && onlineCountEl) {
+            onlineCountEl.setAttribute('data-value', online);
+        }
+        if (members !== undefined && memberCountEl) {
+            memberCountEl.setAttribute('data-value', members);
+        }
+    }
+
+    function fetchDiscordInvite(code) {
+        if (!code) return;
+        const cleanCode = code.replace(/^https?:\/\/discord\.gg\//i, '').replace(/\/$/, '').trim();
+        if (!cleanCode) return;
+        fetch(`https://discord.com/api/v10/invites/${cleanCode}?with_counts=true`)
+            .then(res => res.ok ? res.json() : Promise.reject(res.status))
             .then(data => {
-                if (data && data.presence_count !== undefined) {
-                    onlineCountEl.setAttribute('data-value', data.presence_count);
+                if (data) {
+                    applyDiscordData(data.approximate_presence_count, data.approximate_member_count);
                 }
             })
-            .catch(error => console.error("Erreur chargement Discord:", error));
-    } else {
-        onlineCountEl.setAttribute('data-value', 42); // Placeholder mock value for animation
+            .catch(err => console.warn("Erreur API Invite Discord:", err));
+    }
+
+    if (discordServerId && discordServerId !== 'YOUR_SERVER_ID') {
+        fetch(`https://discord.com/api/guilds/${discordServerId}/widget.json`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Widget HTTP status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.presence_count !== undefined) {
+                    applyDiscordData(data.presence_count, undefined);
+                }
+            })
+            .catch(error => {
+                console.warn("Widget Discord API non disponible ou absent sur Discord:", error.message);
+                if (discordInviteCode) {
+                    fetchDiscordInvite(discordInviteCode);
+                }
+            });
+    } else if (discordInviteCode) {
+        fetchDiscordInvite(discordInviteCode);
     }
 
     // 6. DIPLOMACY CANVAS EFFECT
@@ -741,9 +777,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const particles = [];
         const config = {
             baseCount: 200,
-            allyColor: '#00ff00', 
-            enemyColor: '#ff2a2a', 
-            neutralColor: '#aaaaaa' 
+            allyColor: '#00ff00',
+            enemyColor: '#ff2a2a',
+            neutralColor: '#aaaaaa'
         };
 
         class Particle {
@@ -803,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const distToCenter = Math.abs(this.x - w / 2);
-                
+
                 // Clash Physics
                 if (this.side === 'ally' || this.side === 'enemy') {
                     if (distToCenter < 200) {
@@ -880,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.globalAlpha = 0.15;
             ctx.fillStyle = '#050505';
             ctx.fillRect(0, 0, w, h);
-            
+
             // Random lightning arcs in the clash zone
             if (Math.random() > 0.85) {
                 const clashY = Math.random() * h;
@@ -920,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { threshold: 0.1 });
         canvasObserver.observe(canvas.parentElement);
     }
-    
+
     initDiplomacyCanvas();
 
 });
